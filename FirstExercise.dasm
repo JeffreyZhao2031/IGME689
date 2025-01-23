@@ -8,40 +8,44 @@
 ; Define Variables
 
         seg Variables 	; Defining a segment
-	org $80		; Variables go to goes into this memory slot ($0080-$00FF)
-			; $ -> means memory slot
-
-Temp		.byte
+	org $80		; Variables go to goes into this memory slot ($0080-$00FF) (Memory Map)
+			; $ -> absolute mode
+                        ; # -> literal mode
+                        ; #$ -> literal hexidecimal
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Code segment
 
-	seg Code
-        org $f000
+	seg Code	; Define where ROM begins
+        org $F000	; ROM Starts at $F000
 
-Start
-	CLEAN_START
+start: 
+	sei 		; disable interrupts
+        cld		; disable BCD mode
+        ldx #$FF	; Load x-register with value of FF (end of RAM)
+        txs 		; transform x to the stack point 
+        
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        ; Clear out the zero page
+        ; Zero page is everything from $00 to $FF
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        
+        lda #0 		; Load into accumulator Register A = 0
+        ldx #$FF
+        
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        ; Go through every bit in zero page and fill it with 0
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-NextFrame
-        lsr SWCHB	; test Game Reset switch
-        bcc Start	; reset?
-; 1 + 3 lines of VSYNC
-	VERTICAL_SYNC
-; 37 lines of underscan
-	TIMER_SETUP 37
-        TIMER_WAIT
-; 192 lines of frame
-	TIMER_SETUP 192
-        TIMER_WAIT
-; 29 lines of overscan
-	TIMER_SETUP 29
-        TIMER_WAIT
-; total = 262 lines, go to next frame
-        jmp NextFrame
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Epilogue
-
-	org $fffc
-        .word Start	; reset vector
-        .word Start	; BRK vector
+memloop:
+	sta $0,X	; Store value of A insidie memory addess $0 + X
+        dex		; X--
+        bne memloop	; Loop until X is equal to zero (z-flag is set) (Branch until result is 0)
+        
+        
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        ; Makes the cart exactly 4KB
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        org $FFFC 
+        .word start	; brings it to 4KB and is the reset vector, tells it where to go when it starts to run
+        .word start	; interupt vector
