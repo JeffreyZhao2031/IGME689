@@ -1,0 +1,88 @@
+    processor 6502
+        include "vcs.h"
+        include "macro.h"
+
+        seg.u Variables
+    org $80
+        
+BGColor equ $81
+        
+        ;===================
+        ;get started at the ROM memory address
+        ;===================
+
+    seg code
+        org $F000
+
+Start:    CLEAN_START
+
+    ;===================
+        ;We establish the kernel. 
+        ;===================
+        
+nextframe:
+    lda %00000010    ; We need to send a bit to VBLANK and VSYNC
+        sta VBLANK
+        sta VSYNC
+        
+        sta WSYNC
+        sta WSYNC
+        sta WSYNC
+        
+        lda #0
+        sta VSYNC
+        
+        ldx #$0E
+        stx COLUBK
+        
+        ;===================
+        ;Move down 37 lines. 
+        ;===================
+
+    ldx #37
+        
+loopblank:
+    sta WSYNC
+        dex
+        bne loopblank
+        
+        lda #0
+        sta VBLANK
+        
+        ;===================
+        ;We are now in the viewable part of the screen.
+        ; We have 192 lines to work with.
+        ;===================
+        
+        ldx #192
+        lda BGColor
+        
+rainbow:
+    adc #1
+        sta COLUBK
+        sta WSYNC
+        dex
+        bne rainbow
+        
+        ;===================
+        ;Move down 30 lines. 
+        ;===================
+        
+        lda #2
+        sta VBLANK
+        
+        ldx #30
+        
+overscan:
+
+    sta WSYNC
+        dex
+        bne overscan
+        
+        dec BGColor
+        
+        jmp nextframe
+
+    org $fffc
+        .word Start    ; reset vector
+        .word Start    ; BRK vector
