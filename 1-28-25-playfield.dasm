@@ -1,0 +1,54 @@
+
+	processor 6502
+        include "vcs.h"
+        include "macro.h"
+        include "xmacro.h"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Code segment
+
+	seg Code
+        org $f000
+
+Start	CLEAN_START
+
+	ldx #$80
+        stx COLUBK
+        lda #$1C
+        stx COLUPF
+        
+start_frame:
+	lda #2
+        sta VBLANK
+        sta VSYNC
+        
+        REPEAT 3 	; loop 3 times
+        sta WSYNC
+        REPEND
+        
+        lda #0
+        sta VSYNC
+        
+        REPEAT 37	; REPEAT will actually repeat 37 times
+        sta WSYNC
+        REPEND
+        
+        lda #0
+        sta VBLANK
+        
+        
+        lda #%00000001
+        stx CTRLPF
+        
+        lda #0
+        stx PF0
+        stx PF1
+        stx PF2
+        
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Epilogue
+
+	org $fffc
+        .word Start	; reset vector
+        .word Start	; BRK vector
