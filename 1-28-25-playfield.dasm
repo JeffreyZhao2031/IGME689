@@ -45,6 +45,12 @@ start_frame:
         stx PF1
         stx PF2
         
+        REPEAT 10
+        sta WSYNC
+        REPEND
+        
+        
+        
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Epilogue
