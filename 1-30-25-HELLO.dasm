@@ -1,0 +1,75 @@
+
+	processor 6502
+        include "vcs.h"
+        include "macro.h"
+        include "xmacro.h"
+        
+        seg Variables
+        org $80
+
+Temp = $80
+PlayfieldY = $90
+	
+        seg Code
+        org $F000
+        
+start:	CLEAN_START
+
+	JSR GameInit	; Jump to sub routine 
+
+MainLoop
+	JSR VerticalBlank
+        JSR CheckSwitches
+        JSR GameCalc
+        JSR DrawScreen
+        JSR OverScan
+        JMP MainLoop
+
+VerticalBlank
+	ldx #0
+        lda #2
+        sta WSYNC
+        sta WSYNC
+        sta WSYNC
+        
+        sta VSYNC
+        sta WSYNC
+        sta WSYNC
+        
+        lda #44
+        sta TIM64T
+        
+        lda #0
+        sta CXCLR	; Collison registers
+        
+        sta WSYNC
+        sta VSYNC
+
+CheckSwitches
+GameCalc
+DrawScreen
+OverScan
+
+
+
+GameInit
+	lda #0
+        sta PlayfieldY
+        RTS 
+	
+
+
+PFData0  ;H       4 5 6 7
+       .byte $00,$f0,$00,$A0,$A0,$E0,$A0,$A0
+PFData1  ;EL      7 6 5 4 3 2 1 0
+       .byte $00,$FF,$00,$77,$44,$64,$44,$74
+PFData2  ;LO      0 1 2 3 4 5 6 7
+       .byte $00,$FF,$00,$EE,$A2,$A2,$A2,$E2
+PFLColor ; Left side of screen
+       .byte $00,$FF,$00,$22,$26,$2A,$2C,$2E
+PFRColor ; Right side of screen
+       .byte $00,$1F,$00,$6E,$6C,$6A,$66,$62
+
+	org $fffc
+        .word Start	; reset vector
+        .word Start	; BRK vector
