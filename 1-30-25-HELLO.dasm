@@ -44,10 +44,31 @@ VerticalBlank
         
         sta WSYNC
         sta VSYNC
+        RTS 
 
 CheckSwitches
+	lda #0
+        sta COLBUBK
+        RTS
+        
 GameCalc
+	inc PlayfieldY	; increment
+        
+        
 DrawScreen
+	lda INTIM	; the remaind of the timer 
+        bne DrawScreen
+        sta WSYNC
+        sta VBLANK
+        
+        lda #2		
+        sta CTRLPF
+	
+        ldy #191
+        
+ScanLoop
+	
+        
 OverScan
 
 
