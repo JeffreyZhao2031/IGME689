@@ -1,85 +1,85 @@
-
 	processor 6502
         include "vcs.h"
         include "macro.h"
         include "xmacro.h"
-        
-        seg Variables
+
+    SEG Variables
         org $80
 
 Temp = $80
 PlayfieldY = $90
-	
-        seg Code
+
+    SEG Code
         org $F000
         
-start:	CLEAN_START
+start: CLEAN_START
 
-	JSR GameInit	; Jump to sub routine 
-
+    JSR GameInit
+        
 MainLoop
-	JSR VerticalBlank
+    JSR VerticalBlank
         JSR CheckSwitches
         JSR GameCalc
         JSR DrawScreen
-        JSR OverScan
+        JSR Overscan
         JMP MainLoop
 
 VerticalBlank
-	ldx #0
-        lda #2
-        sta WSYNC
-        sta WSYNC
-        sta WSYNC
+    LDX #0
+        LDA #2
+        STA WSYNC
+        STA WSYNC
+        STA WSYNC
         
-        sta VSYNC
-        sta WSYNC
-        sta WSYNC
+        STA VSYNC
+        STA WSYNC
+        STA WSYNC
         
-        lda #44
-        sta TIM64T
+        LDA #44
+        STA TIM64T
         
-        lda #0
-        sta CXCLR	; Collison registers
+        LDA #0
+        STA CXCLR
         
-        sta WSYNC
-        sta VSYNC
-        RTS 
+        STA WSYNC
+        STA VSYNC
+        RTS
 
 CheckSwitches
-	lda #0
-        sta COLBUBK
+    LDA #0
+        STA COLUBK
         RTS
-        
+
 GameCalc
-	inc PlayfieldY	; increment
-        
-        
+    INC PlayfieldY
+        RTS
+
 DrawScreen
-	lda INTIM	; the remaind of the timer 
-        bne DrawScreen
-        sta WSYNC
-        sta VBLANK
+    LDA INTIM
+        BNE DrawScreen
+        STA WSYNC
+        STA VBLANK
         
-        lda #2		
-        sta CTRLPF
-	
-        ldy #191
+        LDA #2
+        STA CTRLPF
         
+        LDY #191
+
 ScanLoop
-	
-        
-OverScan
+    
+
+
+Overscan
+
 
 
 
 GameInit
-	lda #0
-        sta PlayfieldY
-        RTS 
-	
+    LDA #0
+        STA PlayfieldY
+        RTS
 
-
+        
 PFData0  ;H       4 5 6 7
        .byte $00,$f0,$00,$A0,$A0,$E0,$A0,$A0
 PFData1  ;EL      7 6 5 4 3 2 1 0
@@ -91,6 +91,6 @@ PFLColor ; Left side of screen
 PFRColor ; Right side of screen
        .byte $00,$1F,$00,$6E,$6C,$6A,$66,$62
 
-	org $fffc
-        .word Start	; reset vector
-        .word Start	; BRK vector
+    org $fffc
+        .word start    ; reset vector
+        .word start    ; BRK vector
