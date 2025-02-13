@@ -1,0 +1,71 @@
+
+	processor 6502
+        include "vcs.h"
+        include "macro.h"
+        include "xmacro.h"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Variables segment
+
+        seg.u Variables
+	org $80
+
+XPOS	= $80
+XDIR	= $81
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Code segment
+
+	seg Code
+        org $f000
+
+Start
+	CLEAN_START
+        
+        lda #76
+        sta XPOS
+        lda #$81
+        sta XDIR 
+        
+        lda #$90
+        sta COLUBK
+        lda #$FF
+        sta COLUP0
+        
+        sta HMCLR
+        
+;; =============================================================
+;; Establish Kernel. Establish Sprite
+;; =============================================================
+
+	; Down 3 Down 37, 192, 30, return to top
+        sta WSYNC
+        lda #2
+        STA VSYNC
+        STA WSYNC
+        STA WSYNC
+        STA WSYNC
+        lda #0
+        sta VSYNC
+        
+        ldx #34
+        
+VertBlank	; can assume its on until
+	sta WSYNC
+        dex
+        bne VertBlank
+        
+        
+        
+        
+        jmp Start
+        
+        
+     
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Epilogue
+
+	org $fffc
+        .word Start	; reset vector
+        .word Start	; BRK vector
