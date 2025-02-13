@@ -54,8 +54,24 @@ VertBlank	; can assume its on until
 	sta WSYNC
         dex
         bne VertBlank
+        lda #0
         
+        ldx #103
         
+MIDDLE
+	sta WSYNC
+        dex
+        bne MIDDLE
+        
+        ; load 1 line with graphics x 9
+        ; broken right now since need 3 more lines
+        
+        ldx #30
+        
+BOTTOM
+	sta WSYNC
+        dex
+        BNE BOTTOM
         
         
         jmp Start
