@@ -1,87 +1,175 @@
-
-	processor 6502
-        include "vcs.h"
-        include "macro.h"
-        include "xmacro.h"
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Variables segment
-
-        seg.u Variables
-	org $80
-
-XPOS	= $80
-XDIR	= $81
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Code segment
-
-	seg Code
-        org $f000
-
-Start
-	CLEAN_START
+    PROCESSOR 6502
+    INCLUDE "vcs.h"
+        INCLUDE "macro.h"
         
-        lda #76
-        sta XPOS
-        lda #$81
-        sta XDIR 
-        
-        lda #$90
-        sta COLUBK
-        lda #$FF
-        sta COLUP0
-        
-        sta HMCLR
-        
-;; =============================================================
-;; Establish Kernel. Establish Sprite
-;; =============================================================
+;===================
+; Variables
+;===================
 
-	; Down 3 Down 37, 192, 30, return to top
-        sta WSYNC
-        lda #2
+    	SEG.u Variables
+        ORG $80 
+        
+XPOS     = $80
+XDIR    = $81
+
+;===================
+; 
+;===================
+
+   	SEG code
+        ORG $F000
+        
+START: CLEAN_START
+
+    	LDA #76
+        STA XPOS
+        LDA #1
+        STA XDIR
+        
+Show_Frame
+        LDA #$90
+        STA COLUBK
+        LDA #$FF
+        STA COLUP0
+        
+        STA HMCLR
+
+;===================
+; Establish Kernel, Establish a sprite.
+;===================
+
+    ; Down 3, Down 37, 192, 30 return to top. 
+    	STA WSYNC
+        LDA #2
         STA VSYNC
         STA WSYNC
         STA WSYNC
         STA WSYNC
-        lda #0
-        sta VSYNC
+        LDA #0
+        STA VSYNC
         
-        ldx #34
+        lda XPOS
+        ldx #0
+        jsr X_POSITION
         
-VertBlank	; can assume its on until
-	sta WSYNC
-        dex
-        bne VertBlank
-        lda #0
+        sta WSYNC
+        sta HMOVE	; can only do horizontal movment at the start of a new line
         
-        ldx #103
+        LDX #34
+        
+VertBlank 
+    	STA WSYNC
+        DEX
+        BNE VertBlank
+        LDA #0
+        STA VBLANK
+        
+        LDX #183
         
 MIDDLE
-	sta WSYNC
-        dex
-        bne MIDDLE
+    	STA WSYNC
+        DEX
+        BNE MIDDLE
         
-        ; load 1 line with graphics x 9
-        ; broken right now since need 3 more lines
+        ; Load 1 line with graphics x 9
         
-        ldx #30
+        sta WSYNC 
+        lda #$18
+        sta GRP0
         
+        sta WSYNC 
+        lda #$18
+        sta GRP0
+        
+        sta WSYNC 
+        lda #$18
+        sta GRP0
+        
+        sta WSYNC 
+        lda #$3C
+        sta GRP0
+        
+        sta WSYNC 
+        lda #$24
+        sta GRP0
+        
+        sta WSYNC 
+        lda #$66
+        sta GRP0
+        
+        sta WSYNC 
+        lda #$FF
+        sta GRP0
+        
+        sta WSYNC 
+        lda #$24
+        sta GRP0
+        
+        sta WSYNC 
+        lda #00
+        sta GRP0
+        
+        lda #2
+        sta VBLANK
+    	LDX #30        ; 30 scanlines of bottom border	
+
 BOTTOM
-	sta WSYNC
-        dex
+    	STA WSYNC
+        DEX
         BNE BOTTOM
-        
-        
-        jmp Start
-        
-        
-     
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Epilogue
+    	lda XPOS
+        CLC		; Turning carry off since we need to have it on for additio and subtraction
+        ADC XDIR	; A = A + XDIR + Carry
+        STA XPOS	; XPOS = A
+        CMP #1		; compares XDIR with 1 (since 0 would lead the sprite to be cut off on the bottom
+        BEQ L1		; Branch if equal
+        CMP #153	; Essentially if equal to
+        BEQ L2		; 
+        
+L1
+	LDA #0
+        SEC 		; Sets to true/ IF already on nothing happens
+        SBC XDIR	; subtract from accumator with borrow
+        STA XDIR
+        
+L2	
 
-	org $fffc
-        .word Start	; reset vector
-        .word Start	; BRK vector
+	JMP Show_Frame
+        
+X_POSITION
+	STA WSYNC
+        SEC 
+        LDY $80		; burning a few cycles (loading in current x-position
+        
+X_P1
+	SBC #15		; moving 15 constantly
+        BCS X_P1	; bcs
+
+X_P2
+	TAY
+       	;LDA fine_adjust-$f1,y
+        STA HMP0,X
+        STA RESP0,X
+        RTS
+        
+fine_adjust:
+	.byte $70	; 7px to left.
+	.byte $60	; 6px to left.
+	.byte $50	; 5px to left.
+	.byte $40	; 4px to left.
+	.byte $30	; 3px to left.
+	.byte $20	; 2px to left.
+	.byte $10	; 1px to left.
+	.byte $00	; No adjustment.
+	.byte $f0	; 1px to right.
+	.byte $e0	; 2px to right.
+	.byte $d0	; 3px to right.
+	.byte $c0	; 4px to right.
+	.byte $b0	; 5px to right.
+	.byte $a0	; 6px to right.
+	.byte $90	; 7px to right.
+        
+    ORG $FFFC
+    .word START
+    .word START
