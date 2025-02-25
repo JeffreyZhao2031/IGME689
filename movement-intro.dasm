@@ -1,175 +1,214 @@
-    PROCESSOR 6502
-    INCLUDE "vcs.h"
+;============================
+; This will demonstrate how to get things moving.
+; Over time, we'll mix and match with this to allow
+; Player input as well.
+;============================
+
+	PROCESSOR 6502
+	INCLUDE "vcs.h"
         INCLUDE "macro.h"
-        
-;===================
-; Variables
-;===================
 
-    	SEG.u Variables
-        ORG $80 
-        
-XPOS     = $80
-XDIR    = $81
+        SEG Variables
+        ORG $80
 
-;===================
-; 
-;===================
+XPOS	= $0080		; Current X position
+XDIR    = $0081     	; Current X direction
 
-   	SEG code
-        ORG $F000
-        
+;============================
+; We're setting up 2 variables first.
+; You can see the intent behind them.
+; But constants like this are done before
+; we set up the code block declaration.
+;============================
+
+    	SEG code
+	ORG $F000
+
+;============================
+; I'm going to use CLEAN_START but when you
+; make your own games, it may depend on your cycle
+; counting.
+;============================
+
 START: CLEAN_START
 
-    	LDA #76
-        STA XPOS
-        LDA #1
-        STA XDIR
-        
-Show_Frame
-        LDA #$90
-        STA COLUBK
-        LDA #$FF
-        STA COLUP0
-        
-        STA HMCLR
+;============================
+; Note that we're setting up our variable values.
+; 76 is near our center given a max area of 160.
+; 2 fewer pixels on either side will help us with
+; edge cases.
+; We'll talk about 2's compliment soon because we're setting a 1 to direction.
+; And by soon, I mean in this program as we flesh it out.
+;============================
 
-;===================
-; Establish Kernel, Establish a sprite.
-;===================
+	LDA #80		; Center of screen
+	STA XPOS
+	LDA #1		; Go to right
+	STA XDIR
 
-    ; Down 3, Down 37, 192, 30 return to top. 
-    	STA WSYNC
-        LDA #2
-        STA VSYNC
+;============================
+; Alright, we're now getting into our kernel.
+; We will set up the color of the background
+; Then the color of player 1
+;============================
+
+SHOW_FRAME:
+
+	LDA #$FF	; White.
+	STA COLUP0	; Player 0 color.
+	LDA #$88	; Blue.
+	STA COLUBK	; Background color.
+
+
+;============================
+; Next, we're going to make sure we reset the registers for movement.
+; It is important to do this because of some of our fine tuning needs constant updating.
+; Note the fine tuning all the way in line 193 "fine tuning."
+;============================
+
+	STA HMCLR	; Clear horizontal motion registers
+
+;============================
+; And now we're getting into our VSYNC
+;============================
+
         STA WSYNC
-        STA WSYNC
-        STA WSYNC
-        LDA #0
-        STA VSYNC
-        
-        lda XPOS
-        ldx #0
-        jsr X_POSITION
-        
-        sta WSYNC
-        sta HMOVE	; can only do horizontal movment at the start of a new line
-        
-        LDX #34
-        
-VertBlank 
-    	STA WSYNC
-        DEX
-        BNE VertBlank
-        LDA #0
-        STA VBLANK
-        
-        LDX #183
-        
-MIDDLE
-    	STA WSYNC
-        DEX
-        BNE MIDDLE
-        
-        ; Load 1 line with graphics x 9
-        
-        sta WSYNC 
-        lda #$18
-        sta GRP0
-        
-        sta WSYNC 
-        lda #$18
-        sta GRP0
-        
-        sta WSYNC 
-        lda #$18
-        sta GRP0
-        
-        sta WSYNC 
-        lda #$3C
-        sta GRP0
-        
-        sta WSYNC 
-        lda #$24
-        sta GRP0
-        
-        sta WSYNC 
-        lda #$66
-        sta GRP0
-        
-        sta WSYNC 
-        lda #$FF
-        sta GRP0
-        
-        sta WSYNC 
-        lda #$24
-        sta GRP0
-        
-        sta WSYNC 
-        lda #00
-        sta GRP0
-        
-        lda #2
-        sta VBLANK
-    	LDX #30        ; 30 scanlines of bottom border	
+	LDA #2		; We need to get our Vsync active.
+	STA VSYNC   ; Then we move things down 3 WSYNC
 
-BOTTOM
-    	STA WSYNC
-        DEX
-        BNE BOTTOM
-
-    	lda XPOS
-        CLC		; Turning carry off since we need to have it on for additio and subtraction
-        ADC XDIR	; A = A + XDIR + Carry
-        STA XPOS	; XPOS = A
-        CMP #1		; compares XDIR with 1 (since 0 would lead the sprite to be cut off on the bottom
-        BEQ L1		; Branch if equal
-        CMP #153	; Essentially if equal to
-        BEQ L2		; 
-        
-L1
-	LDA #0
-        SEC 		; Sets to true/ IF already on nothing happens
-        SBC XDIR	; subtract from accumator with borrow
-        STA XDIR
-        
-L2	
-
-	JMP Show_Frame
-        
-X_POSITION
+	REPEAT 3
 	STA WSYNC
-        SEC 
-        LDY $80		; burning a few cycles (loading in current x-position
-        
-X_P1
-	SBC #15		; moving 15 constantly
-        BCS X_P1	; bcs
+	REPEND
 
-X_P2
-	TAY
-       	;LDA fine_adjust-$f1,y
-        STA HMP0,X
-        STA RESP0,X
-        RTS
-        
-fine_adjust:
-	.byte $70	; 7px to left.
-	.byte $60	; 6px to left.
-	.byte $50	; 5px to left.
-	.byte $40	; 4px to left.
-	.byte $30	; 3px to left.
-	.byte $20	; 2px to left.
-	.byte $10	; 1px to left.
-	.byte $00	; No adjustment.
-	.byte $f0	; 1px to right.
-	.byte $e0	; 2px to right.
-	.byte $d0	; 3px to right.
-	.byte $c0	; 4px to right.
-	.byte $b0	; 5px to right.
-	.byte $a0	; 6px to right.
-	.byte $90	; 7px to right.
-        
-    ORG $FFFC
-    .word START
-    .word START
+        LDA #0		; And turn it off!
+	STA VSYNC
+
+;============================
+; We'll reset the player position to basically neutral.
+; Note here that we're basically going to 0 so we can keep the fine tuning going.
+; if you want to watch this variable, look at it in the 0-age.
+;============================
+
+	LDA XPOS       ; Desired X position
+	;;AND #$7F       ; same as AND 01111111, forces bit 7 to zero
+	               ; keeping the result positive ; ESSENTIALLY +=
+                       ; CAUSES THE VISUAL ISSUE WHERE IT BOUNCES EARLY SINCE WHEN THE XPOS 
+                       ; REACHES 127 THIS CAUSES IT TO OVERFLOW TO 0
+        SEC            ; set carry flag before subtraction
+        STA WSYNC      ; wait for next scanline
+        STA HMCLR      ; clear old horizontal position values
+
+DivideLoop:
+        SBC #15        ; Subtract 15 from A
+        BCS DivideLoop ; loop while carry flag is still set
+        EOR #7         ; adjust the remainder in A between -8 and 7
+        ASL            ; shift left by 4, as HMP0 uses only 4 bits
+        ASL
+        ASL
+        ASL
+        STA HMP0       ; set player0 smooth position value
+        STA RESP0      ; fix player0 rough position
+        STA WSYNC      ; wait for next scanline
+        STA HMOVE      ; apply fine position offset to all objects
+
+;============================
+; So note that we're writing HMOVE just after a WSYNC.
+; Think of this as telling the TIA to wait til the start of a scanline
+; to start fine tuning movement.
+;============================
+
+BLANK:
+        REPEAT 37
+        STA WSYNC
+        REPEND
+
+	LDA #0		; Disable blanking
+	STA VBLANK
+
+;============================
+; Now we're in visible lines.
+;============================
+
+VISIBLE:
+	REPEAT 183
+        STA WSYNC
+        REPEND
+
+;============================
+; So you may wonder why we're basically going down ONLY 183 lines.
+; The remaining 9 are reserved for the player sprite.
+; We will do it this way first and then talk about "sprites" later.
+; I'll add the binary values where I can.
+;============================
+
+	STA WSYNC	; One scanline
+	LDA #$18	; Play around with this value.00011000
+	STA GRP0	; You'll see that this is the top.
+
+	STA WSYNC	; One scanline
+	LDA #$18	; Play around with this value.00011000
+	STA GRP0
+
+	STA WSYNC	; One scanline
+	LDA #$18	; Play around with this value.00011000
+	STA GRP0
+
+	STA WSYNC	; One scanline
+	LDA #$3c	; Play around with this value. 00111100
+	STA GRP0
+
+	STA WSYNC	; One scanline
+	LDA #$24	; Play around with this value.
+	STA GRP0
+
+	STA WSYNC	; One scanline
+	LDA #$66	; Play around with this value.
+	STA GRP0
+
+	STA WSYNC	; One scanline
+	LDA #$ff	; Play around with this value. #%11111111
+	STA GRP0
+
+	STA WSYNC	; One scanline
+	LDA #$24	; Play around with this value.
+	STA GRP0
+
+	STA WSYNC	; One scanline
+	LDA #$00	; And this one is blank.
+	STA GRP0	; Change it up and see what happens.
+
+;============================
+; We have a kernel, we have a sprite. Now we're doing our overscan.
+; But notice here that we're actually doing some calculations here in order to get our min and max x values in order.
+;============================
+
+BOTTOM:
+	REPEAT 29
+        STA WSYNC
+	REPEND
+
+	LDA XPOS	; A = XPOS
+	CLC		; Clear carry (C flag in P register becomes zero)
+	ADC XDIR	; A = A + XDIR + Carry
+	STA XPOS	; XPOS = A
+	CMP #1		; Reached minimum X-position 1?
+	BEQ L1		; Branch if EQual
+	CMP #153	; Reached maximum X-position 153?
+	BNE JUMP	; Branch if Not Equal
+
+;============================
+; Here, we might talk about how he's doing some work in and around negative or signed numbers.
+;============================
+
+L1:
+	LDA #0		; A = 0
+	SEC		; Set carry (it means no borrow for subtraction)
+	SBC XDIR	; A = 0 - XDIR (reverses direction)
+	STA XDIR	; XDIR = A
+
+JUMP
+        JMP SHOW_FRAME
+
+	ORG $FFFC
+	.word START
+	.word START
