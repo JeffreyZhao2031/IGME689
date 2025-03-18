@@ -16,6 +16,7 @@
     seg.u Variables
     org $80
 P0XPos byte        ; This will primarily be used for sprite manipulation.
+P1XPos byte        ; This will primarily be used for sprite manipulation.
 ; You might wonder about the "byte" there. Just imagine it's saying, "put this where it can go."
 ; It may become a problem if you start declaring tons of variables.
 
@@ -39,6 +40,9 @@ Reset:
 ;=========================================================
     lda #10
     sta P0XPos     ; initialize player X coordinate
+    
+    lda #20
+    sta P1XPos     ; initialize player X coordinate
 
 ;=========================================================
 ; YAY! It's making our kernal happen.
@@ -65,6 +69,8 @@ StartFrame:
 ;=========================================================
     lda P0XPos     ; load register A with desired X position
     and #$7F       ; AND position with $7F to fix range
+    lda P1XPos     ; load register A with desired X position
+    and #$7F       ; AND position with $7F to fix range
     sta WSYNC      ; wait for next scanline
     sta HMCLR      ; clear old horizontal position values
 
@@ -80,6 +86,8 @@ DivideLoop:
     asl
     sta HMP0       ; set fine position
     sta RESP0      ; reset 15-step brute position
+    sta HMP1       ; set fine position
+    sta RESP1      ; reset 15-step brute position
     sta WSYNC      ; wait for next scanline
     sta HMOVE      ; apply the fine position offset
 
@@ -111,6 +119,12 @@ DrawBitmap:
 
     lda P0Color,Y  ; load player color from lookup table
     sta COLUP0     ; set color for player 0 slice
+    
+    lda P1Bitmap,Y ; load player bitmap slice of data
+    sta GRP1       ; set graphics for player 0 slice
+
+    lda P1Color,Y  ; load player color from lookup table
+    sta COLUP1     ; set color for player 0 slice
 
     sta WSYNC      ; wait for next scanline
 
@@ -119,6 +133,7 @@ DrawBitmap:
 
     lda #0
     sta GRP0       ; disable P0 bitmap graphics
+    sta GRP1       ; disable P0 bitmap graphics
 
     lda #$FF       ; enable grass playfield
     sta PF0
@@ -185,6 +200,31 @@ CheckP0Right:
     bne NoInput
     inc P0XPos
     
+; P1 Movement
+CheckP1Up:
+    lda #%00000001	; right > left > down > up (p0). Repeat for p1.
+    bit SWCHA		; So we send this to the PIA (Peripheral Interface Adaptor) register.
+    bne CheckP1Down	
+    inc P1XPos
+
+CheckP1Down:
+    lda #%00000010      ; Note that this is inverse to how it is expected. This is mostly the AND thing. 
+    bit SWCHA
+    bne CheckP1Left
+    dec P1XPos
+
+CheckP1Left:
+    lda #%00000100
+    bit SWCHA
+    bne CheckP1Right
+    dec P1XPos
+
+CheckP1Right:
+    lda #%00001000
+    bit SWCHA
+    bne NoInput
+    inc P1XPos
+    
 ; So we basically constantly checking to see if something is different.
 ; At some point a player will move the stick and if so, what is happening?
 
@@ -224,8 +264,8 @@ P0Bitmap:
 ;=========================================================
 P0Color:
     byte #$00
-    byte #$F6
-    byte #$F2
+    byte #$F0
+    byte #$72
     byte #$F2
     byte #$F2
     byte #$F2
@@ -241,6 +281,46 @@ P0Color:
     byte #$3E
     byte #$24
 
+P1Bitmap:
+    byte #%00000000
+    byte #%00010100
+    byte #%00010100
+    byte #%00010100
+    byte #%00010100
+    byte #%00010100
+    byte #%00011100
+    byte #%01011101
+    byte #%01011101
+    byte #%01011101
+    byte #%01011101
+    byte #%01111111
+    byte #%00111110
+    byte #%00010000
+    byte #%00011100
+    byte #%00011100
+    byte #%00011100
+
+;=========================================================
+; Lookup table for the player colors
+;=========================================================
+P1Color:
+    byte #$00
+    byte #$F6
+    byte #$F2
+    byte #$F2
+    byte #$F2
+    byte #$F2
+    byte #$F2
+    byte #$C2
+    byte #$C2
+    byte #$C2
+    byte #$C2
+    byte #$C2
+    byte #$C2
+    byte #$3E
+    byte #$3E
+    byte #$3E
+    byte #$00
 ;=========================================================
 ; Complete ROM size
 ;=========================================================
